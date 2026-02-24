@@ -17,7 +17,7 @@ export function useAdminReturns() {
         setError(null)
         try {
             const result = await returnService.getAll(signal)
-            setReturns(result.data)
+            setReturns(Array.isArray(result.data) ? result.data : [])
         } catch (err) {
             if (isCanceledError(err)) return
             setError(err instanceof Error ? err.message : "Failed to load returns")

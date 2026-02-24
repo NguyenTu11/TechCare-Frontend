@@ -1,6 +1,7 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from "axios"
 import { AppApiError } from "@/types/api"
 import { logger } from "@/lib/logger"
+import { requestQueue } from "@/utils/requestQueue"
 
 const api = axios.create({
     baseURL: process.env.NEXT_PUBLIC_API_URL,
@@ -9,6 +10,10 @@ const api = axios.create({
         "Content-Type": "application/json",
     },
 })
+
+const retryDelay = (retryCount: number): number => {
+    return Math.min(1000 * Math.pow(2, retryCount), 30000)
+}
 
 let isRefreshing = false
 let failedQueue: Array<{
@@ -51,7 +56,7 @@ const clearTokens = (): void => {
 }
 
 api.interceptors.request.use(
-    (config: InternalAxiosRequestConfig) => {
+    async (config: InternalAxiosRequestConfig) => {
         const token = getAccessToken()
         if (token && config.headers) {
             config.headers.Authorization = `Bearer ${token}`
@@ -84,6 +89,7 @@ api.interceptors.response.use(
 
         const originalRequest = error.config as InternalAxiosRequestConfig & {
             _retry?: boolean
+            _retryCount?: number
         }
 
         if (!originalRequest) {
@@ -144,6 +150,19 @@ api.interceptors.response.use(
             }
         }
 
+        if (error.response?.status === 429) {
+            const retryCount = originalRequest._retryCount ?? 0
+
+            if (retryCount < 3) {
+                originalRequest._retryCount = retryCount + 1
+
+                const delay = retryDelay(retryCount)
+                await new Promise((resolve) => setTimeout(resolve, delay))
+
+                return api(originalRequest)
+            }
+        }
+
         const statusCode = error.response?.status ?? 0
         const responseData = error.response?.data as
             | { message?: string }
@@ -157,4 +176,21 @@ api.interceptors.response.use(
     }
 )
 
+const createQueuedRequest = (method: 'get' | 'post' | 'put' | 'patch' | 'delete') => {
+    return async (url: string, data?: any, config?: InternalAxiosRequestConfig) => {
+        const key = `${method}:${url}:${JSON.stringify(data || {})}:${JSON.stringify(config || {})}`
+        
+        return requestQueue.execute(key, () => {
+            return api[method](url, data, config)
+        })
+    }
+}
+
 export default api
+export const queuedApi = {
+    get: createQueuedRequest('get'),
+    post: createQueuedRequest('post'),
+    put: createQueuedRequest('put'),
+    patch: createQueuedRequest('patch'),
+    delete: createQueuedRequest('delete'),
+}

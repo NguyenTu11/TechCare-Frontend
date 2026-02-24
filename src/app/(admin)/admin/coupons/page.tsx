@@ -10,8 +10,16 @@ function formatCurrency(n: number) {
 
 export default function AdminCouponsPage() {
     const { coupons, pagination, isLoading: loading, refetch } = useAdminCoupons()
-    const { create, remove, isLoading: mutating } = useAdminCouponMutation()
+    const { create, update, remove, isLoading: mutating } = useAdminCouponMutation()
     const [deleting, setDeleting] = useState<string | null>(null)
+    const [editing, setEditing] = useState<string | null>(null)
+    const [editCode, setEditCode] = useState("")
+    const [editType, setEditType] = useState<"PERCENTAGE" | "FIXED">("PERCENTAGE")
+    const [editValue, setEditValue] = useState("")
+    const [editMinOrderAmount, setEditMinOrderAmount] = useState("")
+    const [editMaxDiscount, setEditMaxDiscount] = useState("")
+    const [editUsageLimit, setEditUsageLimit] = useState("")
+    const [editExpiresAt, setEditExpiresAt] = useState("")
 
     const [showForm, setShowForm] = useState(false)
     const [code, setCode] = useState("")
@@ -44,6 +52,45 @@ export default function AdminCouponsPage() {
                 refetch()
             }
         } catch { }
+    }
+
+    const handleEdit = (coupon: any) => {
+        setEditing(coupon._id)
+        setEditCode(coupon.code)
+        setEditType(coupon.type)
+        setEditValue(String(coupon.value))
+        setEditMinOrderAmount(coupon.minOrderAmount ? String(coupon.minOrderAmount) : "")
+        setEditMaxDiscount(coupon.maxDiscount ? String(coupon.maxDiscount) : "")
+        setEditUsageLimit(coupon.usageLimit ? String(coupon.usageLimit) : "")
+        setEditExpiresAt(coupon.endDate ? new Date(coupon.endDate).toISOString().split('T')[0] : "")
+    }
+
+    const handleUpdate = async (e: React.FormEvent, id: string) => {
+        e.preventDefault()
+        if (!editCode.trim() || !editValue) return
+        try {
+            const parsed = createCouponSchema.parse({
+                code: editCode.trim().toUpperCase(),
+                type: editType,
+                value: Number(editValue),
+                startDate: new Date().toISOString(),
+                endDate: editExpiresAt ? new Date(editExpiresAt).toISOString() : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+                ...(editMinOrderAmount ? { minOrderAmount: Number(editMinOrderAmount) } : {}),
+                ...(editMaxDiscount ? { maxDiscount: Number(editMaxDiscount) } : {}),
+                ...(editUsageLimit ? { usageLimit: Number(editUsageLimit) } : {}),
+            })
+            const result = await update(id, parsed)
+            if (result) {
+                setEditing(null)
+                setEditCode(""); setEditType("PERCENTAGE"); setEditValue(""); setEditMinOrderAmount(""); setEditMaxDiscount(""); setEditUsageLimit(""); setEditExpiresAt("")
+                refetch()
+            }
+        } catch { }
+    }
+
+    const handleCancelEdit = () => {
+        setEditing(null)
+        setEditCode(""); setEditType("PERCENTAGE"); setEditValue(""); setEditMinOrderAmount(""); setEditMaxDiscount(""); setEditUsageLimit(""); setEditExpiresAt("")
     }
 
     const handleDelete = async (id: string) => {
@@ -104,18 +151,100 @@ export default function AdminCouponsPage() {
                             <tbody className="divide-y divide-border-light dark:divide-border-dark">
                                 {coupons.map((c) => (
                                     <tr key={c._id} className="hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors">
-                                        <td className="px-4 py-3 font-mono font-semibold text-text-primary-light dark:text-text-primary-dark">{c.code}</td>
-                                        <td className="px-4 py-3 text-text-secondary-light dark:text-text-secondary-dark">{c.type}</td>
-                                        <td className="px-4 py-3 text-text-primary-light dark:text-text-primary-dark">
-                                            {c.type === "PERCENTAGE" ? `${c.value}%` : formatCurrency(c.value)}
-                                        </td>
-                                        <td className="px-4 py-3 text-text-secondary-light dark:text-text-secondary-dark">{c.usedCount ?? 0}{c.usageLimit ? `/${c.usageLimit}` : ""}</td>
-                                        <td className="px-4 py-3"><span className={`inline-block h-2 w-2 rounded-full ${c.isActive ? "bg-emerald-500" : "bg-gray-300 dark:bg-gray-600"}`} /></td>
-                                        <td className="px-4 py-3 text-right">
-                                            <button onClick={() => handleDelete(c._id)} disabled={deleting === c._id} className="text-xs text-red-500 hover:text-red-700 disabled:opacity-50 transition-colors">
-                                                {deleting === c._id ? "..." : "Delete"}
-                                            </button>
-                                        </td>
+                                        {editing === c._id ? (
+                                            <td colSpan={6} className="px-4 py-3">
+                                                <form onSubmit={(e) => handleUpdate(e, c._id)} className="space-y-3">
+                                                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+                                                        <input
+                                                            value={editCode}
+                                                            onChange={(e) => setEditCode(e.target.value)}
+                                                            placeholder="Code"
+                                                            className="rounded-lg border border-border-light dark:border-border-dark bg-transparent px-2 py-1 text-sm outline-none focus:ring-2 focus:ring-primary-500/30 text-text-primary-light dark:text-text-primary-dark"
+                                                            autoFocus
+                                                        />
+                                                        <select
+                                                            value={editType}
+                                                            onChange={(e) => setEditType(e.target.value as "PERCENTAGE" | "FIXED")}
+                                                            className="rounded-lg border border-border-light dark:border-border-dark bg-transparent px-2 py-1 text-sm outline-none focus:ring-2 focus:ring-primary-500/30 text-text-primary-light dark:text-text-primary-dark"
+                                                        >
+                                                            <option value="PERCENTAGE">%</option>
+                                                            <option value="FIXED">Fixed</option>
+                                                        </select>
+                                                        <input
+                                                            value={editValue}
+                                                            onChange={(e) => setEditValue(e.target.value)}
+                                                            placeholder="Value"
+                                                            type="number"
+                                                            className="rounded-lg border border-border-light dark:border-border-dark bg-transparent px-2 py-1 text-sm outline-none focus:ring-2 focus:ring-primary-500/30 text-text-primary-light dark:text-text-primary-dark"
+                                                        />
+                                                        <input
+                                                            value={editMinOrderAmount}
+                                                            onChange={(e) => setEditMinOrderAmount(e.target.value)}
+                                                            placeholder="Min Order"
+                                                            type="number"
+                                                            className="rounded-lg border border-border-light dark:border-border-dark bg-transparent px-2 py-1 text-sm outline-none focus:ring-2 focus:ring-primary-500/30 text-text-primary-light dark:text-text-primary-dark"
+                                                        />
+                                                        <input
+                                                            value={editMaxDiscount}
+                                                            onChange={(e) => setEditMaxDiscount(e.target.value)}
+                                                            placeholder="Max Discount"
+                                                            type="number"
+                                                            className="rounded-lg border border-border-light dark:border-border-dark bg-transparent px-2 py-1 text-sm outline-none focus:ring-2 focus:ring-primary-500/30 text-text-primary-light dark:text-text-primary-dark"
+                                                        />
+                                                        <input
+                                                            value={editExpiresAt}
+                                                            onChange={(e) => setEditExpiresAt(e.target.value)}
+                                                            placeholder="Expires"
+                                                            type="date"
+                                                            className="rounded-lg border border-border-light dark:border-border-dark bg-transparent px-2 py-1 text-sm outline-none focus:ring-2 focus:ring-primary-500/30 text-text-primary-light dark:text-text-primary-dark"
+                                                        />
+                                                    </div>
+                                                    <div className="flex gap-2">
+                                                        <button
+                                                            type="submit"
+                                                            disabled={mutating || !editCode.trim() || !editValue}
+                                                            className="rounded-lg bg-primary-600 px-3 py-1 text-xs font-semibold text-white hover:bg-primary-700 disabled:opacity-50 transition-colors"
+                                                        >
+                                                            {mutating ? "Saving..." : "Save"}
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={handleCancelEdit}
+                                                            className="rounded-lg bg-gray-200 px-3 py-1 text-xs font-semibold text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 transition-colors"
+                                                        >
+                                                            Cancel
+                                                        </button>
+                                                    </div>
+                                                </form>
+                                            </td>
+                                        ) : (
+                                            <>
+                                                <td className="px-4 py-3 font-mono font-semibold text-text-primary-light dark:text-text-primary-dark">{c.code}</td>
+                                                <td className="px-4 py-3 text-text-secondary-light dark:text-text-secondary-dark">{c.type}</td>
+                                                <td className="px-4 py-3 text-text-primary-light dark:text-text-primary-dark">
+                                                    {c.type === "PERCENTAGE" ? `${c.value}%` : formatCurrency(c.value)}
+                                                </td>
+                                                <td className="px-4 py-3 text-text-secondary-light dark:text-text-secondary-dark">{c.usedCount ?? 0}{c.usageLimit ? `/${c.usageLimit}` : ""}</td>
+                                                <td className="px-4 py-3"><span className={`inline-block h-2 w-2 rounded-full ${c.isActive ? "bg-emerald-500" : "bg-gray-300 dark:bg-gray-600"}`} /></td>
+                                                <td className="px-4 py-3 text-right">
+                                                    <div className="flex gap-2 justify-end">
+                                                        <button
+                                                            onClick={() => handleEdit(c)}
+                                                            className="text-xs text-blue-500 hover:text-blue-700 transition-colors"
+                                                        >
+                                                            Edit
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleDelete(c._id)}
+                                                            disabled={deleting === c._id}
+                                                            className="text-xs text-red-500 hover:text-red-700 disabled:opacity-50 transition-colors"
+                                                        >
+                                                            {deleting === c._id ? "..." : "Delete"}
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </>
+                                        )}
                                     </tr>
                                 ))}
                             </tbody>

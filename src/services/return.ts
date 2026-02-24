@@ -29,11 +29,9 @@ export const returnService = {
     },
 
     cancel: async (id: string, signal?: AbortSignal) => {
-        const response = await api.post<ApiMessageResponse>(
-            `/return/${id}/cancel`,
-            {},
-            { signal }
-        )
+        const response = await api.delete<ApiMessageResponse>(`/return/${id}`, {
+            signal,
+        })
         return response.data
     },
 }

@@ -26,6 +26,9 @@ export default function NotificationsPage() {
                             <div className="flex-1 min-w-0">
                                 <h3 className="text-sm font-semibold text-text-primary-light dark:text-text-primary-dark">{n.title}</h3>
                                 <p className="mt-1 text-sm text-text-secondary-light dark:text-text-secondary-dark">{n.message}</p>
+                                {n.type === "ORDER_STATUS" && n.data && typeof n.data === "object" && "orderStatus" in n.data && (
+                                    <p className="mt-1 text-xs font-medium text-amber-600 dark:text-amber-400">Status: {String(n.data.orderStatus)}</p>
+                                )}
                                 <p className="mt-2 text-xs text-text-secondary-light/60 dark:text-text-secondary-dark/60">{new Date(n.createdAt).toLocaleString("vi-VN")}</p>
                             </div>
                             <div className="flex shrink-0 gap-1">

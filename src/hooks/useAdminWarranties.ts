@@ -16,7 +16,7 @@ export function useAdminWarranties() {
         setError(null)
         try {
             const result = await warrantyService.getAll(signal)
-            setWarranties(result.data)
+            setWarranties(Array.isArray(result.data) ? result.data : [])
         } catch (err) {
             if (isCanceledError(err)) return
             setError(err instanceof Error ? err.message : "Failed to load warranties")

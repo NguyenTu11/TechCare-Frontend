@@ -56,7 +56,7 @@ export const warrantyService = {
 
     void: async (id: string, signal?: AbortSignal) => {
         const response = await api.delete<ApiResponse<Warranty>>(
-            `/warranty/${id}/void`,
+            `/warranty/${id}`,
             { signal }
         )
         return response.data

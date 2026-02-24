@@ -60,9 +60,14 @@ export default function AdminProductsPage() {
                                             <span className={`inline-block h-2 w-2 rounded-full ${p.isActive ? "bg-emerald-500" : "bg-gray-300 dark:bg-gray-600"}`} />
                                         </td>
                                         <td className="px-4 py-3 text-right">
-                                            <button type="button" onClick={() => handleDelete(p._id)} disabled={deleting === p._id} className="text-xs font-medium text-red-500 hover:text-red-700 disabled:opacity-50 transition-colors">
-                                                {deleting === p._id ? "..." : "Delete"}
-                                            </button>
+                                            <div className="flex gap-2 justify-end">
+                                                <a href={`/admin/products/${p._id}`} className="text-xs font-medium text-blue-500 hover:text-blue-700 transition-colors">
+                                                    Edit
+                                                </a>
+                                                <button type="button" onClick={() => handleDelete(p._id)} disabled={deleting === p._id} className="text-xs font-medium text-red-500 hover:text-red-700 disabled:opacity-50 transition-colors">
+                                                    {deleting === p._id ? "..." : "Delete"}
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))}

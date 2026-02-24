@@ -16,7 +16,7 @@ export function useNotifications() {
             setError(null)
             try {
                 const result = await notificationService.getAll(params)
-                setNotifications(result.data)
+                setNotifications(Array.isArray(result.data) ? result.data : [])
                 if (result.pagination) setPagination(result.pagination)
             } catch (err) {
                 setError(err instanceof Error ? err.message : "Failed to load notifications")

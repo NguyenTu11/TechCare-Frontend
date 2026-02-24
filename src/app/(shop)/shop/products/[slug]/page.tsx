@@ -6,6 +6,7 @@ import { useCart } from "@/hooks/useCart"
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Check, Star, Truck, ShieldCheck, ArrowRight } from "lucide-react"
+import { SimilarProducts } from "@/components/product/SimilarProducts"
 
 export default function ProductDetailPage() {
     const params = useParams<{ slug: string }>()
@@ -288,6 +289,7 @@ export default function ProductDetailPage() {
 
                 </div>
             </div>
+            {product && <SimilarProducts currentProduct={product} />}
         </div>
     )
 }

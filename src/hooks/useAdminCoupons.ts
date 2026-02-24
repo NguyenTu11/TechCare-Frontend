@@ -64,6 +64,21 @@ export function useAdminCouponMutation() {
         }
     }, [])
 
+    const update = useCallback(async (id: string, data: Partial<CreateCouponInput>) => {
+        setIsLoading(true)
+        setError(null)
+        try {
+            const result = await adminCouponService.update(id, data)
+            return result.data
+        } catch (err) {
+            if (isCanceledError(err)) return null
+            setError(err instanceof Error ? err.message : "Failed to update coupon")
+            return null
+        } finally {
+            setIsLoading(false)
+        }
+    }, [])
+
     const remove = useCallback(async (id: string) => {
         setIsLoading(true)
         setError(null)
@@ -79,5 +94,5 @@ export function useAdminCouponMutation() {
         }
     }, [])
 
-    return { create, remove, isLoading, error }
+    return { create, update, remove, isLoading, error }
 }
